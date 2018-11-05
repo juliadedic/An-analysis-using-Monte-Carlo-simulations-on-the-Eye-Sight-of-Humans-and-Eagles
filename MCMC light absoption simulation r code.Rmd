@@ -1,0 +1,423 @@
+```{r}
+lambda <- 600*10^-9 #Wavelength of typical visible light of yellow orange worm
+k <- 2*pi/lambda #k= wavenumber
+m <- 1000 #Total number of iterations choosing x' and y' at the aperture(worm)
+l <- 1000 #Total number of points in the image plane (human/ eagle eye)
+radius=5*10^-3 #typical size of worm
+humaneyeradius=2*10^(-3)#human eyes have 2mm radius pupil on average
+xprimelist <- runif(m,min=-1*radius,max=radius) #list of all points in the aperture
+yprimelist <- runif(m,min=-sqrt(radius^2-xprimelist^2),max=sqrt(radius^2-xprimelist^2))
+#list of all points in the aperture
+surface <- rep(1,m) #fixed aperture, so it can be 1 throughout the experiment
+hlist <- rep(0,m)
+humaneyesum=rep(0,l)
+im <- complex(real=0, imaginary=1) #initializing complex number, i
+selist=rep(0,l) #standard error list
+lcilist=rep(0,l)#Lower Confidence Interval list
+ucilist=rep(0,l)#Upper Confidence Interval list
+z <- 100*10^-3 #Shortest distance between object and pupils centre 10cm for humans
+for(k in 1:l){
+x=runif(1,min=-humaneyeradius,max=humaneyeradius)#Choosing points in the image plane (eye)
+y=runif(1,min=-sqrt(humaneyeradius^2-x^2),max=sqrt(
+
+
+
+#distance between the point in the aperture and the point in the pupil
+for(j in 1:m){
+hlist[j]=as.complex(log(surface[j]))+as.complex(im*k*r[j])-as.complex(log(r[j]))-
+as.complex(log(2*radius)^(-1))-as.complex(log(2*sqrt(radius^2-xprimelist[j]^2))^(-1))
+#function of interest
+}
+hlist= exp(hlist)/(im*lambda) #undoing the log and applying the constant that was in front
+humaneyesum[k]=mean(hlist)
+selist[k]=sd(Re(hlist))/sqrt(m)
+lcilist[k]=mean(Re(hlist))-1.96*selist[k]
+ucilist[k]=mean(Re(hlist))+1.96*selist[k]
+if(k%%100==0){ #Print standard errors and confidence intervals of every 100th iteration
+cat("Standard error:", selist[k], "Lower CI:", lcilist[k], "Upper CI:", ucilist[k],"\n")
+}
+if(k==l){ #For last point on the pupil, let's plot
+plot(hlist) #Just to see how integral is represented on a complex plane
+plot(Re(hlist)) #The real part of the integral of interest
+}
+}
+cat("The average energy obtained from the 1000 points of human pupil is",
+mean(Re(humaneyesum)))
+eagleeyeradius=(7.5)*10^(-3)#eagle eye has 7.5 mm radius pupil on average
+hlist <- rep(0,m)
+eagleeyesum= rep(0,l)
+z=0.4 #Shortest distance between object and pupils centre, 40cm for eagles
+for(k in 1:l){
+x=runif(1,min=-eagleeyeradius,max=eagleeyeradius) #Choosing particular points on the eagle pupil
+y=runif(1,min=-sqrt(eagleeyeradius^2-x^2),max=sqrt(eagleeyeradius^2-x^2))
+r <- sqrt((x-xprimelist)^2+(y-yprimelist)^2+z^2)
+for(j in 1:m){
+hlist[j]=as.complex(log(surface[j]))+as.complex(im*k*r[j])-as.complex(log(r[j]))-
+as.complex(log(2*radius)^(-1))-as.complex(log(2*sqrt(radius^2-xprimelist[j]^2))^(-1))
+
+}
+hlist= exp(hlist)/(im*lambda)
+eagleeyesum[k]=mean(hlist)
+selist[k]=sd(Re(hlist))/sqrt(m)
+lcilist[k]=mean(Re(hlist))-1.96*selist[k]
+ucilist[k]=mean(Re(hlist))+1.96*selist[k]
+if(k%%100==0){
+cat("Standard error:", selist[k], "Lower CI:", lcilist[k], "Upper CI:", ucilist[k],"\n")
+}
+if(k==l){
+plot(hlist)
+plot(Re(hlist))
+}
+}
+cat("The average energy obtained from the 1000 points of eagle pupil is",
+mean(Re(eagleeyesum)))
+cat("Note the difference is",abs(mean(Re(eagleeyesum))-mean(Re(humaneyesum))))
+xprimeprime=runif(m,min=0, max=1/(2*radius-exp(-5))) #Auxilary variable for xprime (points in the aperture)
+yprimeprime=rep(0,m) #Auxilary variable for yprime (poits in the aperture)
+for(k in 1:m){
+if(1/(2*sqrt((radius)^2-xprimelist^2)-exp(-5))>0){
+yprimeprime[j]=runif(1,min=0, max=1/(2*sqrt((radius)^2-xprimelist^2)-exp(-5)))
+}
+}
+numacc=0
+humaneyesum=rep(0,l)
+for(k in 1:l){
+acceptlist=complex()
+x=runif(1,min=-humaneyeradius,max=humaneyeradius)
+y=runif(1,min=-sqrt(humaneyeradius^2-x^2),max=sqrt(humaneyeradius^2-x^2))
+for(j in 1:m){
+if(xprimeprime[j]< 1/(2*radius) &&
+
+
+
+
+yprimeprime[j]< 1/(2*sqrt((radius)^2-xprimelist[j]^2))){
+#Accept based on auxilary rejection method
+r <- sqrt((x-xprimelist[j])^2+(y-yprimelist[j])^2+z^2)
+acceptlist=c(acceptlist, as.complex(log(surface[j]))+as.complex(im*k*r)
+-as.complex(log(r))-as.complex(log(2*radius)^(-1))-
+as.complex(log(2*sqrt(radius^2-xprimelist[j]^2))^(-1)))
+}
+}
+acceptlist= exp(acceptlist)/(im*lambda)
+humaneyesum[k]=mean(acceptlist)
+numacc=numacc+length(acceptlist)
+selist[k]=sd(Re(acceptlist))/sqrt(length(acceptlist))
+lcilist[k]=mean(Re(acceptlist))-1.96*selist[k]
+ucilist[k]=mean(Re(acceptlist))+1.96*selist[k]
+if(k%%100==0){
+cat("Standard error:", selist[k], "Lower CI:", lcilist[k], "Upper CI:", ucilist[k],"\n")
+}
+if(k==l){
+plot(acceptlist)
+plot(Re(acceptlist))
+}
+}
+cat("Accepted", numacc, "number of samples out of", m*l,"total samples")
+cat("The average energy obtained from the 100 points of human pupil is",
+mean(Re(humaneyesum)))
+eagleeyesum=rep(0,l)
+numacc=0
+for(k in 1:l){
+acceptlist=complex()
+x=runif(1,min=-eagleeyeradius,max=eagleeyeradius)
+y=runif(1,min=-sqrt(eagleeyeradius^2-x^2),max=sqrt(eagleeyeradius^2-x^2))
+
+
+for(j in 1:m){
+if(xprimeprime[j]< 1/(2*radius) &&
+yprimeprime[j]< 1/(2*sqrt((radius)^2-xprimelist[j]^2))){
+r <- sqrt((x-xprimelist[j])^2+(y-yprimelist[j])^2+z^2)
+acceptlist=c(acceptlist, as.complex(log(surface[j]))+as.complex(im*k*r)
+-as.complex(log(r))-as.complex(log(2*radius)^(-1))
+-as.complex(log(2*sqrt(radius^2-xprimelist[j]^2))^(-1)))
+}
+}
+acceptlist= exp(acceptlist)/(im*lambda)
+eagleeyesum[k]=mean(acceptlist)
+numacc=numacc+length(acceptlist)
+selist[k]=sd(Re(acceptlist))/sqrt(length(acceptlist))
+lcilist[k]=mean(Re(acceptlist))-1.96*selist[k]
+ucilist[k]=mean(Re(acceptlist))+1.96*selist[k]
+if(k%%100==0){
+cat("Standard error:", selist[k], "Lower CI:", lcilist[k], "Upper CI:", ucilist[k],"\n")
+}
+if(k==l){
+plot(acceptlist)
+plot(Re(acceptlist))
+}
+}
+cat("Accepted", numacc, "number of samples out of", m*l,"total samples")
+cat("The average energy obtained from the 1000 points of eagle pupil is",
+mean(Re(eagleeyesum)))
+primelist=c(0,0) #Starting position at the centre of the aperture
+varfact=function(xxx){ #Function to calculate varfact
+2*sum(acf(xxx,plot=FALSE)$acf)-1
+}
+surface=double()
+
+
+#Initializing surface
+#(going to be 1 if points x', y' are inside the aperture, and 0 if outside)
+sigma =0.05 #Proposal scaling factor
+pipdf = function(x) {
+#pdf of pi. Notice that the normalizing constant will be cancelled out
+if(x[1]^2+x[2]^2<=radius^2){
+return(dnorm(x[1],mean=0, sd=1)*dnorm(x[2],mean=0, sd=1))
+}
+return(0)
+}
+numacc=0
+B=500 #Burn-in
+l=1000
+m=1000
+surface=rep(1,2*m)
+humaneyesum=rep(0,l)
+z=0.1
+for(k in 1:l){
+x=runif(1,min=-humaneyeradius,max=humaneyeradius)
+y=runif(1,min=-sqrt(humaneyeradius^2-x^2),max=sqrt(humaneyeradius^2-x^2))
+hlist = rep(0,2*m)
+for(j in 1:m){
+for(coord in 1:length(primelist)){
+futureprimelist=primelist #futureprimelist will be containing proposal coordinates
+futureprimelist[coord]=primelist[coord]+sigma*rnorm(1)#propose in a direction "coord"
+U=runif(1)
+alpha= pipdf(futureprimelist)/pipdf(primelist) #for accept/reject
+if(U<alpha){ #If accepted
+numacc=numacc+1
+primelist=futureprimelist #Accept the proposed value
+}
+r <- sqrt((x-primelist[1])^2+(y-primelist[2])^2+z^2)
+
+
+
+
+hlist[2*j-2+coord]= as.complex(log(surface[2*j-2+coord]))+as.complex(im*k*r)
+-as.complex(log(r))-as.complex(log(dnorm(primelist[1],0,1)))
+-as.complex(log(dnorm(primelist[2],0,1)))
+}
+}
+hlist= exp(hlist)/(im*lambda)
+humaneyesum[k]=mean(Re(hlist[(2*(B+1)):(2*m)]))
+if(k==l){
+thevarfact=varfact(Re(hlist[(2*(B+1)):(2*m)]))
+se1=sd(Re(hlist[(2*(B+1)):(2*m)]))/sqrt(2*m-2*B)
+se=se1*sqrt(thevarfact)
+cat("For the last point in the image plane (i.e., when k=1000):")
+cat("iid standard error would be about", se1)
+cat("Varfact=", thevarfact)
+cat("True standard error is about", se)
+cat("Approximate 95% confidence interval is (",
+mean(Re(hlist[(2*(B+1)):(2*m)]))-1.96*se,",",
+mean(Re(hlist[(2*(B+1)):(2*m)]))+1.96*se,")")
+acf(Re(hlist[(2*(B+1)):(2*m)]))
+plot(Re(hlist[(2*(B+1)):(2*m)]))
+}
+}
+cat("The average energy obtained from human pupil is",
+mean(Re(humaneyesum)))
+cat("Probability of acceptance is", numacc/(2*m*l))
+primelist=c(0,0)
+varfact=function(xxx){
+2*sum(acf(xxx,plot=FALSE)$acf)-1
+}
+surface=double()
+
+
+pipdf = function(x) {
+if(x[1]^2+x[2]^2<=radius^2){
+return(dnorm(x[1],mean=0, sd=1)*dnorm(x[2],mean=0, sd=1))
+}
+return(0)
+}
+numacc=0
+B=500
+l=100
+m=1000
+surface=rep(1,2*m)
+eagleeyesum=rep(0,l)
+z=0.40
+for(k in 1:l){
+x=runif(1,min=-eagleeyeradius,max=eagleeyeradius)
+y=runif(1,min=-sqrt(eagleeyeradius^2-x^2),max=sqrt(eagleeyeradius^2-x^2))
+hlist = rep(0,2*m)
+for(j in 1:m){
+for(coord in 1:length(primelist)){
+futureprimelist=primelist
+futureprimelist[coord]=primelist[coord]+sigma*rnorm(1)
+#propose in a direction "coord"
+U=runif(1)
+alpha= pipdf(futureprimelist)/pipdf(primelist) #for accept/reject
+if(U<alpha){
+numacc=numacc+1
+primelist=futureprimelist
+}
+r <- sqrt((x-primelist[1])^2+(y-primelist[2])^2+z^2)
+hlist[2*j-2+coord]= as.complex(log(surface[2*j-2+coord]))+as.complex(im*k*r)
+-as.complex(log(r))-as.complex(log(dnorm(primelist[1],0,1)))
+-as.complex(log(dnorm(primelist[2],0,1)))
+
+
+}
+}
+hlist= exp(hlist)/(im*lambda)
+eagleeyesum[k]=mean(Re(hlist[(2*(B+1)):(2*m)]))
+if(k==l){
+thevarfact=varfact(Re(hlist[(2*(B+1)):(2*m)]))
+# logvarfact=varfact(log(Re(hlist[(2*(B+1)):(2*m)]))))
+se1=sd(Re(hlist[(2*(B+1)):(2*m)]))/sqrt(2*m-2*B)
+se=se1*sqrt(thevarfact)
+cat("For the last point in the image plane (i.e., when k=1000):")
+cat("iid standard error would be about", se1)
+cat("Varfact=", thevarfact)
+cat("True standard error is about", se)
+cat("Approximate 95% confidence interval is (", mean(Re(hlist[(2*(B+1)):(2*m)]))-1.96*se,",",
+mean(Re(hlist[(2*(B+1)):(2*m)]))+1.96*se,")")
+acf(Re(hlist[(2*(B+1)):(2*m)]))
+plot(Re(hlist[(2*(B+1)):(2*m)]))
+}
+}
+# acf(log(Re(hlist)))
+cat("The average energy obtained from Metropolis Within Gibbs on eagle pupil is",
+mean(Re(eagleeyesum)))
+cat("Probability of acceptance is", numacc/(2*m*l))
+# independence sampler q= c*pi, assuming pi distribution is mvn (0,1)
+lambda <- 600*10^(-9)
+k <- (2*pi)/lambda
+m <- 1000
+l <- 1000
+B = 500
+numacc = 0
+xprimelist=0
+yprimelist=0
+
+
+radius=5*10^-3
+humaneyeradius=2*10^(-3)
+humaneyesum=rep(0,l)
+im <- complex(real=0, imaginary=1)
+z <- 100*10^-3
+pipdf=function(x,y){ #Pdf of stationary distribution \pi
+if ( x^2+y^2>(5*10^-3)^2 ){
+return(0)
+}
+return(dnorm(x)*dnorm(y))
+}
+h = function(x,y,r) { #Function of interest
+surface=1
+return(h=as.complex(log(surface))+as.complex(im*k*r)-as.complex(log(r))
+-as.complex(log(dnorm(primelist[1],0,1)))-as.complex(log(dnorm(primelist[2],0,1))))
+}
+Y = function(x,y){ #Proposal distribution pdf
+return(dnorm(x,sd=0.05)*dnorm(y,sd=0.05))
+}
+for (j in 1:m){
+x=runif(1,min=-humaneyeradius,max=humaneyeradius)
+y=runif(1,min=-sqrt(humaneyeradius^2-x^2),max=sqrt(humaneyeradius^2-x^2))
+hlist <- rep(0,m)
+for (i in 1:l) {
+xprimeprop=rnorm(1,sd=0.05)#To match the proposal scaling factor of 0.05 of previous example
+yprimeprop=rnorm(1,sd=0.05)
+A=(pipdf(xprimeprop,yprimeprop)*Y(xprimelist,yprimelist))/
+(pipdf(xprimelist, yprimelist)*Y(xprimeprop, yprimeprop))
+U = runif(1);
+if (U < A) {
+# accept proposal
+
+
+xprimelist=xprimeprop
+yprimelist=yprimeprop
+numacc = numacc + 1
+}
+rnew <- sqrt((x-xprimelist)^2+(y-yprimelist)^2+z^2)
+#distance between a point in the aperture and a point in the pupil
+hlist[i]=exp(h(xprimelist,yprimelist,rnew))/(im*lambda)
+}
+humaneyesum[j]=mean(Re(hlist[(B+1):m]))
+if(j==m){
+thevarfact=varfact(Re(hlist[(1*(B+1)):(1*m)]))
+se1=sd(Re(hlist[(1*(B+1)):(1*m)]))/sqrt(1*m-1*B)
+se=se1*sqrt(thevarfact)
+cat("For the last point in the image plane (i.e., when k=1000):")
+cat("iid standard error would be about", se1)
+cat("Varfact=", thevarfact)
+cat("True standard error is about", se)
+cat("Approximate 95% confidence interval is (", mean(Re(hlist[(1*(B+1)):(1*m)]))-1.96*se,",",
+mean(Re(hlist[(1*(B+1)):(1*m)]))+1.96*se,")")
+acf(Re(hlist[(1*(B+1)):(1*m)]))
+plot(Re(hlist[(1*(B+1)):(1*m)]))
+}
+}
+cat("acceptance rate =", numacc/(l*m), "\n");
+cat("mean of h from Independence Sampler is about", mean(Re(humaneyesum)), "\n")
+# independence sampler q= c*pi, assuming pi distribution is mvn (0,1)
+lambda <- 600*10^(-9)
+k <- (2*pi)/lambda
+m <- 1000
+l <- 1000
+B = 500
+numacc = 0
+
+
+xprimelist=0
+yprimelist=0
+radius=5*10^-3
+eagleeyeradius=2*10^(-3)
+eagleeyesum=rep(0,l)
+im <- complex(real=0, imaginary=1)
+z <- 400*10^-3
+pipdf=function(x,y){
+if ( x^2+y^2>(5*10^-3)^2 ){
+return(0)
+}
+return(dnorm(x)*dnorm(y))
+}
+h = function(x,y,r) {
+surface=1
+return(h=as.complex(log(surface))+as.complex(im*k*r)-as.complex(log(r))
+-as.complex(log(dnorm(primelist[1],0,1)))
+-as.complex(log(dnorm(primelist[2],0,1))))
+}
+Y = function(x,y){
+return(dnorm(x,sd=0.05)*dnorm(y,sd=0.05))
+}
+for (j in 1:m){
+x=runif(1,min=-eagleeyeradius,max=eagleeyeradius)
+y=runif(1,min=-sqrt(eagleeyeradius^2-x^2),max=sqrt(eagleeyeradius^2-x^2))
+hlist <- rep(0,m)
+for (i in 1:l) {
+xprimeprop=rnorm(1,sd=0.05)
+yprimeprop=rnorm(1,sd=0.05)
+A=(pipdf(xprimeprop,yprimeprop)*Y(xprimelist,yprimelist))/
+(pipdf(xprimelist, yprimelist)*Y(xprimeprop, yprimeprop))
+U = runif(1);
+if (U < A) {
+# accept proposal
+xprimelist=xprimeprop
+yprimelist=yprimeprop
+numacc = numacc + 1
+}
+rnew <- sqrt((x-xprimelist)^2+(y-yprimelist)^2+z^2)
+hlist[i]=exp(h(xprimelist,yprimelist,rnew))/(im*lambda)
+}
+if(j==m){
+thevarfact=varfact(Re(hlist[(1*(B+1)):(1*m)]))
+se1=sd(Re(hlist[(1*(B+1)):(1*m)]))/sqrt(1*m-1*B)
+se=se1*sqrt(thevarfact)
+cat("For the last point in the image plane (i.e., when k=1000):")
+cat("iid standard error would be about", se1)
+cat("Varfact=", thevarfact)
+cat("True standard error is about", se)
+cat("Approximate 95% confidence interval is (", mean(Re(hlist[(1*(B+1)):(1*m)]))-1.96*se,",",
+mean(Re(hlist[(1*(B+1)):(1*m)]))+1.96*se,")")
+acf(Re(hlist[(1*(B+1)):(1*m)]))
+plot(Re(hlist[(1*(B+1)):(1*m)]))
+}
+eagleeyesum[j]=mean(Re(hlist[(B+1):m]))
+}
+cat("acceptance rate =", numacc/(l*m), "\n");
+cat("mean of h from independence sampler from Eagle is about", mean(Re(eagleeyesum)), "\n")
+```
+
+
